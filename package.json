@@ -1,0 +1,26 @@
+{
+  "name": "phone-api-bdd",
+  "version": "1.0.0",
+  "description": "Phone API using GSM Arena data on database",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MaximilienHe/Phone-API-BDD.git"
+  },
+  "author": "Lucas Chalmandrier",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MaximilienHe/Phone-API-BDD/issues"
+  },
+  "homepage": "https://github.com/MaximilienHe/Phone-API-BDD#readme",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "jest": "^29.3.1",
+    "mysql": "^2.18.1"
+  }
+}

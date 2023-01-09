@@ -1,0 +1,7 @@
+- Problème : la fonction censé mettre à jour la table des brands rajoute enfaite des entrées les unes à la suites des autres
+    - Cause : Le nom n'est pas une primary key, donc la requête SQL ne fait jamais de MAJ
+    - Solution 1 : Mettre le nom en primary key
+        - Problème : On ne peut pas avoir le nom en primary key + l'id qui s'auto incrémente
+            - Solution : Supprimer l'id
+                - Problème : La foreign key de la table devices n'est plus correct
+                    - Solution : Refaire la table devices

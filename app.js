@@ -1,5 +1,5 @@
 require('dotenv').config();
-
+const { default: axios } = require("axios");
 const mysql = require('mysql');
 const express = require('express');
 const cron = require('cron');

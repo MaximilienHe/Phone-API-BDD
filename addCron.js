@@ -46,22 +46,9 @@ const fetchDeviceFromAPI = async (url) => {
     }
 };
 
-const fetchDevicesCountForBrandFromAPI = async (brandUrl) => {
-    try {
-        // Add delay of 5 to 10 seconds
-        const delay = Math.floor(Math.random() * 6) + 5;
-        await new Promise(resolve => setTimeout(resolve, delay * 1000));
-        const response = await axios.get(process.env.API_URL + "brand/" + brandUrl);
-        console.log("Success Brand Fetch");
-        return response.data.length;
-    } catch (error) {
-        console.error(error);
-        return null;
-    }
-};
-
 const addCron = async (connection) => {
     // Fetch data from the API
+    console.log("Starting cron job ... \n");
     const brands = await fetchBrandsFromAPI();
 
     if (!brands) {
@@ -98,7 +85,7 @@ const addCron = async (connection) => {
                 let deviceUrl = brand.url;
 
                 while (cptDevice < newDevicesCount) {
-                    const devices = await fetchDevicesFromAPI(deviceUrl);
+                    const devices = await fetchBrandFromAPI(deviceUrl);
                     for (let j = 0; j < devices.length && cptDevice < newDevicesCount; j++) {
                         const device = devices[j];
                         const existingDevice = await new Promise((resolve, reject) => {
@@ -145,17 +132,16 @@ const addCron = async (connection) => {
                         break;
                     }
                 }
+                // Update the devices count for the existing brand
+                const sql3 = `UPDATE brands SET devices = ? WHERE name = ?`;
+                connection.query(sql3, [apiDevicesCount, brand.name], (error, results) => {
+                    if (error) {
+                        console.log(error);
+                        return;
+                    }
+                    console.log("Updated devices count for brand " + brand.name);
+                });
             }
-
-            // Update the devices count for the existing brand
-            const sql3 = `UPDATE brands SET devices = ? WHERE name = ?`;
-            connection.query(sql3, [apiDevicesCount, brand.name], (error, results) => {
-                if (error) {
-                    console.log(error);
-                    return;
-                }
-                console.log("Updated devices count for brand " + brand.name);
-            });
         }
     }
     console.log('Data saved successfully');

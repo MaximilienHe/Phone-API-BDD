@@ -1,9 +1,9 @@
 require('dotenv').config();
-const { default: axios } = require("axios");
 const mysql = require('mysql');
 const express = require('express');
-const cron = require('cron');
 const app = express();
+const cron = require('cron');
+
 
 // Set up MySQL connection
 const connection = mysql.createConnection({
@@ -23,15 +23,10 @@ connection.connect((err) => {
 });
 
 
-const fetchAndSave = require('./fetch-and-save');
-
-fetchAndSave(connection);
-
-// Set up a new cron job to run every day at midnight
-// const job = new cron.CronJob('0 0 * * *', fetchAndSave);
-
-// Start the cron job
-// job.start();
+// const fetchAndSave = require('./fetch-and-save');
+const addCron = require('./addCron');
+// fetchAndSave(connection);
+addCron(connection);
 
 app.listen(8080, () => {
   console.log('App listening on port 8080');

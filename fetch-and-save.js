@@ -1,10 +1,14 @@
-const { default: axios } = require("axios");
+const {
+  default: axios
+} = require("axios");
 const mysql = require('mysql');
 
 
 const fetchBrandsFromAPI = async () => {
   try {
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    // Add delay of 5 to 10 seconds
+    const delay = Math.floor(Math.random() * 6) + 5;
+    await new Promise(resolve => setTimeout(resolve, delay * 1000));
     const response = await axios.get(process.env.API_URL + "brands/");
     console.log("Success Brands Fetch");
     return response.data;
@@ -16,7 +20,9 @@ const fetchBrandsFromAPI = async () => {
 
 const fetchBrandFromAPI = async (url) => {
   try {
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    // Add delay of 5 to 10 seconds
+    const delay = Math.floor(Math.random() * 6) + 5;
+    await new Promise(resolve => setTimeout(resolve, delay * 1000));
     const response = await axios.get(process.env.API_URL + "brand/" + url);
     console.log("Success Brand Fetch");
     return response.data;
@@ -28,7 +34,9 @@ const fetchBrandFromAPI = async (url) => {
 
 const fetchDeviceFromAPI = async (url) => {
   try {
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    // Add delay of 5 to 10 seconds
+    const delay = Math.floor(Math.random() * 6) + 5;
+    await new Promise(resolve => setTimeout(resolve, delay * 1000));
     const response = await axios.get(process.env.API_URL + "device/" + url);
     console.log("Success Device Fetch");
     return response.data;
@@ -41,7 +49,9 @@ const fetchDeviceFromAPI = async (url) => {
 const insertBrandsIntoDatabase = async (data, connection, callback) => {
   // Insert the data into the database
   let id = 0;
-  for (const row of data) {
+  let cptDevice = 0;
+  for (let iBrand = 62; iBrand < data.length; iBrand++) {
+    cptDevice = 0;
 
     ////////////////////////////////////////
     //                BRANDS              //
@@ -52,7 +62,7 @@ const insertBrandsIntoDatabase = async (data, connection, callback) => {
     VALUES (?, ?) 
     ON DUPLICATE KEY UPDATE devices = IF(devices = VALUES(devices), devices, VALUES(devices))`;
     // Create a prepared statement
-    const preparedStatement = mysql.format(sql, [row.name, row.devices]);
+    const preparedStatement = mysql.format(sql, [data[iBrand].name, data[iBrand].devices]);
 
     // Execute the prepared statement
     connection.query(preparedStatement, (error, results) => {
@@ -67,21 +77,21 @@ const insertBrandsIntoDatabase = async (data, connection, callback) => {
     //                DEVICES             //
     ////////////////////////////////////////
 
-
-    let brand = await fetchBrandFromAPI(row.url);
+    let brand = await fetchBrandFromAPI(data[iBrand].url);
     while (!brand.data[0].url) {
       console.error('Error fetching brand from API');
-      brand = await fetchBrandFromAPI(row.url);
+      brand = await fetchBrandFromAPI(data[iBrand].url);
     }
     do {
       for (let i = 0; i < brand.data.length; i++) {
-
+        cptDevice++;
+        console.log("Brand name : " + data[iBrand].name + " ; Device " + cptDevice + " / " + data[iBrand].devices);
         // Define the SQL query for devices table
         const sql = `INSERT INTO devices (title, brand_name, img, img_url)
         VALUES (?, ?, ?, ?)`
 
         // Create a prepared statement for devices table
-        connection.query(sql, [brand.data[i].name, row.name, brand.data[i].img, brand.data[i].img_url, JSON.stringify(brand.data[i].spec_detail)], (error, results) => {
+        connection.query(sql, [brand.data[i].name, data[iBrand].name, brand.data[i].img, brand.data[i].img_url, JSON.stringify(brand.data[i].spec_detail)], (error, results) => {
           if (error) {
             console.log(error);
             return;
@@ -95,7 +105,7 @@ const insertBrandsIntoDatabase = async (data, connection, callback) => {
         VALUES (?, ?, ?, ?, ?)`
 
         // Create a prepared statement for devicesDetail table
-        connection.query(sql2, [deviceDetails.title, row.name, deviceDetails.img, deviceDetails.img_url, JSON.stringify(deviceDetails.spec_detail)], (error, results) => {
+        connection.query(sql2, [deviceDetails.title, data[iBrand].name, deviceDetails.img, deviceDetails.img_url, JSON.stringify(deviceDetails.spec_detail)], (error, results) => {
           if (error) {
             console.log(error);
             return;
@@ -110,7 +120,7 @@ const insertBrandsIntoDatabase = async (data, connection, callback) => {
           brand = await fetchBrandFromAPI(brand.next);
         }
       }
-    } while (brand.next);
+    } while (data[iBrand].devices > cptDevice);
 
   };
 };

@@ -147,6 +147,7 @@ const addCron = async (connection) => {
         }
     }
     console.log('Data saved successfully');
+    process.exit();
 };
 
 

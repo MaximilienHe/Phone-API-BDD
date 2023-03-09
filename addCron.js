@@ -78,7 +78,7 @@ const addCron = async (connection) => {
 
             if (apiDevicesCount === bddDevicesCount) {
                 console.log(`No new devices found for brand ${brand.name}\n`);
-            } else {
+            } else if (apiDevicesCount > bddDevicesCount) {
                 console.log(`New devices found for brand ${brand.name}\n`);
                 let cptDevice = 0;
                 let newDevicesCount = apiDevicesCount - bddDevicesCount;
@@ -86,8 +86,9 @@ const addCron = async (connection) => {
 
                 while (cptDevice < newDevicesCount) {
                     const devices = await fetchBrandFromAPI(deviceUrl);
-                    for (let j = 0; j < devices.length && cptDevice < newDevicesCount; j++) {
-                        const device = devices[j];
+                    for (let j = 0; j < devices.data.length && cptDevice < newDevicesCount; j++) {
+                        console.log(j + " / " + devices.data.length + "\n");
+                        const device = devices.data[j];
                         const existingDevice = await new Promise((resolve, reject) => {
                             const sql = `SELECT * FROM devices WHERE title = ? AND brand_name = ?`;
                             connection.query(sql, [device.name, brand.name], (error, results) => {
@@ -100,6 +101,7 @@ const addCron = async (connection) => {
                         });
 
                         if (!existingDevice) {
+                            console.log("Adding device " + device.name + " for brand " + brand.name + " ... \n")
                             const sql = `INSERT INTO devices (title, brand_name, img, img_url)
                              VALUES (?, ?, ?, ?)`;
                             connection.query(sql, [device.name, brand.name, device.img, device.img_url], (error, results) => {
@@ -111,6 +113,7 @@ const addCron = async (connection) => {
                             });
 
                             // Fetch device details from API
+                            console.log("Adding device details for device " + device.name + " for brand " + brand.name + " ... \n")
                             const deviceDetails = await fetchDeviceFromAPI(device.url);
                             const sql2 = `INSERT INTO devicesDetail (title, brand_name, img, img_url, spec_details)
                               VALUES (?, ?, ?, ?, ?)`;
@@ -123,13 +126,12 @@ const addCron = async (connection) => {
                             });
 
                             cptDevice++;
+                            console.log("Number of devices added : " + cptDevice + " / " + newDevicesCount + "\n");
                         }
-                    }
-
-                    if (devices.next) {
-                        deviceUrl = devices.next;
-                    } else {
-                        break;
+                        if (j === devices.data.length - 1) {
+                            console.log("End of for loop");
+                            cptDevice = newDevicesCount;
+                        }
                     }
                 }
                 // Update the devices count for the existing brand

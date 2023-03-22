@@ -1,8 +1,17 @@
+
 const {
   default: axios
 } = require("axios");
 const mysql = require('mysql');
 
+const getNextPageUrl = (pages) => {
+  for (let i = 0; i < pages.length - 1; i++) {
+    if (pages[i].active) {
+      return pages[i + 1].url;
+    }
+  }
+  return null;
+};
 
 const fetchBrandsFromAPI = async () => {
   try {
@@ -47,103 +56,188 @@ const fetchDeviceFromAPI = async (url) => {
 };
 
 const insertBrandsIntoDatabase = async (data, connection, callback) => {
-  // Insert the data into the database
-  let id = 0;
-  let cptDevice = 0;
-  for (let iBrand = 62; iBrand < data.length; iBrand++) {
-    cptDevice = 0;
-
-    ////////////////////////////////////////
-    //                BRANDS              //
-    ////////////////////////////////////////
-
-    // Define the SQL query
+  for (let iBrand = 70; iBrand < data.length; iBrand++) {
+    // Insert brand data
     const sql = `INSERT INTO brands (name, devices) 
     VALUES (?, ?) 
     ON DUPLICATE KEY UPDATE devices = IF(devices = VALUES(devices), devices, VALUES(devices))`;
-    // Create a prepared statement
     const preparedStatement = mysql.format(sql, [data[iBrand].name, data[iBrand].devices]);
-
-    // Execute the prepared statement
     connection.query(preparedStatement, (error, results) => {
       if (error) {
         console.error(error);
         return;
       }
-      // console.log(results);
     });
-
-    ////////////////////////////////////////
-    //                DEVICES             //
-    ////////////////////////////////////////
 
     let brand = await fetchBrandFromAPI(data[iBrand].url);
     while (!brand.data[0].url) {
       console.error('Error fetching brand from API');
       brand = await fetchBrandFromAPI(data[iBrand].url);
     }
+
+    let deviceCount = 0;
     do {
       for (let i = 0; i < brand.data.length; i++) {
-        cptDevice++;
-        console.log("Brand name : " + data[iBrand].name + " ; Device " + cptDevice + " / " + data[iBrand].devices);
-        // Define the SQL query for devices table
-        const sql = `INSERT INTO devices (title, brand_name, img, img_url)
-        VALUES (?, ?, ?, ?)`
-
-        // Create a prepared statement for devices table
-        connection.query(sql, [brand.data[i].name, data[iBrand].name, brand.data[i].img, brand.data[i].img_url, JSON.stringify(brand.data[i].spec_detail)], (error, results) => {
-          if (error) {
-            console.log(error);
-            return;
-          }
-          console.log("Success Device");
+        deviceCount++;
+        console.log("Brand name : " + data[iBrand].name + " ; Device " + deviceCount + " / " + data[iBrand].devices);
+        let brand_name = data[iBrand].name;
+        if (brand_name === "O") {
+          brand_name = "O2";
+        }
+        // Insert device data
+        const sql = `INSERT INTO devices (title, brand_name, img, description)
+        VALUES (?, ?, ?, ?)`;
+        await new Promise((resolve, reject) => {
+          connection.query(sql, [brand_name + " " + brand.data[i].name, data[iBrand].name, brand.data[i].img, brand.data[i].description], (error, results) => {
+            if (error) {
+              console.log(error);
+              reject(error);
+              return;
+            }
+            console.log("Success Device");
+            resolve();
+          });
         });
 
-        // Define the SQL query for devicesDetail table
+        // Fetch device details
         let deviceDetails = await fetchDeviceFromAPI(brand.data[i].url);
-        const sql2 = `INSERT INTO devicesDetail (title, brand_name, img, img_url, spec_details)
-        VALUES (?, ?, ?, ?, ?)`
+        for (let category of deviceDetails.spec_detail) {
+          // Insert category data
+          const sqlCategory = `INSERT INTO categories (device_title, name)
+          VALUES (?, ?)
+          ON DUPLICATE KEY UPDATE name = VALUES(name)`;
+          await new Promise((resolve, reject) => {
+            connection.query(sqlCategory, [deviceDetails.title, category.category], (error, results) => {
+              if (error) {
+                console.log(error);
+                reject(error);
+                return;
+              }
+              console.log("Success Category");
+              resolve();
+            });
+          });
 
-        // Create a prepared statement for devicesDetail table
-        connection.query(sql2, [deviceDetails.title, data[iBrand].name, deviceDetails.img, deviceDetails.img_url, JSON.stringify(deviceDetails.spec_detail)], (error, results) => {
-          if (error) {
-            console.log(error);
-            return;
+          // Insert specs data
+          for (let spec of category.specs) {
+            const sqlSpec = `INSERT INTO specs (device_title, category_name, name, value)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE value = VALUES(value)`;
+            connection.query(sqlSpec, [deviceDetails.title, category.category, spec.name, spec.value], (error, results) => {
+              if (error) {
+                console.log(error);
+                return;
+              }
+              console.log("Success Spec");
+            });
           }
-          console.log("Success Device Detail");
-        });
-      }
-      if (brand.next) {
-        brand = await fetchBrandFromAPI(brand.next);
-        while (!brand.data[0].url) {
-          console.error('Error fetching brand from API');
-          brand = await fetchBrandFromAPI(brand.next);
         }
       }
-    } while (data[iBrand].devices > cptDevice);
 
-  };
+      const nextPageUrl = getNextPageUrl(brand.pages);
+      if (nextPageUrl) {
+        brand = await fetchBrandFromAPI(nextPageUrl);
+      } else {
+        break;
+      }
+
+    } while (true);
+  }
+  if (callback) {
+    callback();
+  }
 };
 
-const fetchAndSave = async (connection) => {
-  // Fetch data from the API
-  const brands = await fetchBrandsFromAPI();
 
-  if (!brands) {
-    console.error('Error fetching brands from API\n');
-    return;
-  } else {
-    console.log('Fetched brands from API\n');
-  }
-  // Insert the data into the database
-  insertBrandsIntoDatabase(brands, connection, (err) => {
-    if (err) {
-      console.error('Error inserting data into database');
-      return;
+const fetchLastPageDevices = async (connection) => {
+  const brands = await fetchBrandsFromAPI(connection);
+  for (let iBrand = 9; iBrand < brands.length; iBrand++) {
+    console.log("Brand " + iBrand + " / " + brands.length + " : " + brands[iBrand].name)
+    let brand = await fetchBrandFromAPI(brands[iBrand].url);
+    while (!brand.data[0].url) {
+      console.error('Error fetching brand from API');
+      brand = await fetchBrandFromAPI(brands[iBrand].url);
     }
 
-    console.log('Data saved successfully');
-  });
+    // Recherche de la dernière page de la marque
+    let lastPageUrl = null;
+    if (brand.pages) {
+      lastPageUrl = brand.pages[brand.pages.length - 1].url;
+      console.log("Last page url : " + lastPageUrl);
+    }
+    else {
+      console.log("No pages for brand " + brands[iBrand].name);
+      continue;
+    }
+
+    if (lastPageUrl) {
+      // Récupérer les appareils de la dernière page
+      const lastPageDevices = await fetchBrandFromAPI(lastPageUrl);
+      for (let i = 0; i < lastPageDevices.data.length; i++) {
+        console.log("Brand name : " + brands[iBrand].name + " ; Device " + i + " / " + lastPageDevices.data.length);
+        // Insérer les données de l'appareil dans la base de données
+        let brand_name = brands[iBrand].name;
+        if (brand_name === "O") {
+          brand_name = "O2";
+        }
+        const sql = `INSERT INTO devices (title, brand_name, img, description)
+        VALUES (?, ?, ?, ?)`;
+        await new Promise((resolve, reject) => {
+          connection.query(sql, [brand_name + " " + lastPageDevices.data[i].name, brands[iBrand].name, lastPageDevices.data[i].img, lastPageDevices.data[i].description], (error, results) => {
+            if (error) {
+              console.log(error);
+              reject(error);
+              return;
+            }
+            console.log("Success Device");
+            resolve();
+          });
+        });
+
+        // Fetch device details
+        let deviceDetails = await fetchDeviceFromAPI(lastPageDevices.data[i].url);
+        for (let category of deviceDetails.spec_detail) {
+          // Insert category data
+          const sqlCategory = `INSERT INTO categories (device_title, name)
+          VALUES (?, ?)
+          ON DUPLICATE KEY UPDATE name = VALUES(name)`;
+          await new Promise((resolve, reject) => {
+            connection.query(sqlCategory, [deviceDetails.title, category.category], (error, results) => {
+              if (error) {
+                console.log(error);
+                reject(error);
+                return;
+              }
+              console.log("Success Category");
+              resolve();
+            });
+          });
+
+          // Insert specs data
+          for (let spec of category.specs) {
+            const sqlSpec = `INSERT INTO specs (device_title, category_name, name, value)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE value = VALUES(value)`;
+            connection.query(sqlSpec, [deviceDetails.title, category.category, spec.name, spec.value], (error, results) => {
+              if (error) {
+                console.log(error);
+                return;
+              }
+              console.log("Success Spec");
+            });
+          }
+        }
+      }
+    }
+    else {
+      console.log("No last page");
+      continue;
+    }
+  }
 };
 
-module.exports = fetchAndSave;
+module.exports = {
+  insertBrandsIntoDatabase,
+  fetchBrandsFromAPI,
+  fetchLastPageDevices
+};

@@ -25,21 +25,21 @@ connection.connect((err) => {
 });
 
 
-addCron(connection);
+// addCron(connection);
 
 // Code for initial fetch and save
 
-// (async () => {
-//   const brandsData = await fetchBrandsFromAPI();
-//   if (brandsData) {
-//     insertBrandsIntoDatabase(brandsData, connection, () => {
-//       connection.end();
-//     });
-//   } else {
-//     console.error("Failed to fetch brands from API");
-//     connection.end();
-//   }
-// })();
+(async () => {
+  const brandsData = await fetchBrandsFromAPI();
+  if (brandsData) {
+    insertBrandsIntoDatabase(brandsData, connection, () => {
+      connection.end();
+    });
+  } else {
+    console.error("Failed to fetch brands from API");
+    connection.end();
+  }
+})();
 
 // fetchLastPageDevices(connection);
 

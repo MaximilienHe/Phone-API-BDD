@@ -90,7 +90,7 @@ const addCron = async (connection) => {
         if (apiDevicesCount === bddDevicesCount) {
             console.log(`No new devices found for brand ${brand.name}\n`);
         } else if (apiDevicesCount > bddDevicesCount) {
-            console.log(`New devices found for brand ${brand.name}\n`);
+            console.log(`New devices found for brand ${brand.name}. Nb devices API : ${apiDevicesCount} vs Nb devices BDD : ${bddDevicesCount}\n`);
             let cptDevice = 0;
             let newDevicesCount = apiDevicesCount - bddDevicesCount;
             let deviceUrl = brand.url;

@@ -1,16 +1,18 @@
-
 const {
   default: axios
 } = require("axios");
 const mysql = require('mysql');
 
 const getNextPageUrl = (pages) => {
-  for (let i = 0; i < pages.length - 1; i++) {
-    if (pages[i].active) {
-      return pages[i + 1].url;
+  if (pages) {
+    for (let i = 0; i < pages.length - 1; i++) {
+      if (pages[i].active) {
+        return pages[i + 1].url;
+      }
     }
+  } else {
+    return null;
   }
-  return null;
 };
 
 const fetchBrandsFromAPI = async () => {
@@ -56,7 +58,7 @@ const fetchDeviceFromAPI = async (url) => {
 };
 
 const insertBrandsIntoDatabase = async (data, connection, callback) => {
-  for (let iBrand = 70; iBrand < data.length; iBrand++) {
+  for (let iBrand = 57; iBrand < data.length; iBrand++) {
     // Insert brand data
     const sql = `INSERT INTO brands (name, devices) 
     VALUES (?, ?) 
@@ -164,8 +166,7 @@ const fetchLastPageDevices = async (connection) => {
     if (brand.pages) {
       lastPageUrl = brand.pages[brand.pages.length - 1].url;
       console.log("Last page url : " + lastPageUrl);
-    }
-    else {
+    } else {
       console.log("No pages for brand " + brands[iBrand].name);
       continue;
     }
@@ -228,8 +229,7 @@ const fetchLastPageDevices = async (connection) => {
           }
         }
       }
-    }
-    else {
+    } else {
       console.log("No last page");
       continue;
     }

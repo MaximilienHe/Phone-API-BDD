@@ -58,7 +58,17 @@ const fetchDeviceFromAPI = async (url) => {
 };
 
 const insertBrandsIntoDatabase = async (data, connection, callback) => {
-  for (let iBrand = 57; iBrand < data.length; iBrand++) {
+  for (let iBrand = 0; iBrand < data.length; iBrand++) {
+    console.log("Brand " + (iBrand + 1) + " / " + data.length + " : " + data[iBrand].name);
+    //  
+    // if (data[iBrand].name == "Amazon" || data[iBrand].name == "Asus" || data[iBrand].name == "Blackview" || data[iBrand].name == "Cat" || data[iBrand].name == "Doogee" || data[iBrand].name == "Fairphone" || data[iBrand].name == "Google" || data[iBrand].name == "Honor" || data[iBrand].name == "HTC" || data[iBrand].name == "Huawei" || data[iBrand].name == "Lenovo" || data[iBrand].name == "Meizu" || data[iBrand].name == "Microsoft" || data[iBrand].name == "Motorola" || data[iBrand].name == "Nokia" || data[iBrand].name == "Nothing" || data[iBrand].name == "OnePlus" || data[iBrand].name == "Oppo" || data[iBrand].name == "Realme" || data[iBrand].name == "Samsung" || data[iBrand].name == "Sony" || data[iBrand].name == "TCL" || data[iBrand].name == "vivo" || data[iBrand].name == "Wiko" || data[iBrand].name == "Xiaomi" || data[iBrand].name == "ZTE") {
+    if (data[iBrand].name == "Samsung") {
+      console.log("Valid brand");
+    } else {
+      console.log("Invalid brand");
+      continue;
+    }
+    console.log("Brand name : " + data[iBrand].name + " ; Devices : " + data[iBrand].devices);
     // Insert brand data
     const sql = `INSERT INTO brands (name, devices) 
     VALUES (?, ?) 
@@ -87,38 +97,36 @@ const insertBrandsIntoDatabase = async (data, connection, callback) => {
           brand_name = "O2";
         }
         // Insert device data
-        const sql = `INSERT INTO devices (title, brand_name, img, description)
-        VALUES (?, ?, ?, ?)`;
-        await new Promise((resolve, reject) => {
-          connection.query(sql, [brand_name + " " + brand.data[i].name, data[iBrand].name, brand.data[i].img, brand.data[i].description], (error, results) => {
-            if (error) {
-              console.log(error);
-              reject(error);
-              return;
-            }
-            console.log("Success Device");
-            resolve();
-          });
-        });
+        if (brand_name + " " + brand.data[i].name == "Samsung Galaxy Tab Active4 Pro" ||
+         brand_name + " " + brand.data[i].name == "Samsung Galaxy A04s" ||
+         brand_name + " " + brand.data[i].name == "Samsung Galaxy Watch5 Pro" ||
+         brand_name + " " + brand.data[i].name == "Samsung Galaxy Watch5" ||
+         brand_name + " " + brand.data[i].name == "Samsung Galaxy A23 5G" ||
+         brand_name + " " + brand.data[i].name == "OnePlus Nord Watch" ||
+         brand_name + " " + brand.data[i].name == "Samsung Galaxy A02s" ||
+         brand_name + " " + brand.data[i].name == "Realme C55" ||
+         brand_name + " " + brand.data[i].name == "Realme C1" ||
+         brand_name + " " + brand.data[i].name == "Samsung Galaxy A51 5G" ||
+         brand_name + " " + brand.data[i].name == "Samsung Galaxy S8 Active" ||
+         brand_name + " " + brand.data[i].name == "Samsung Galaxy J5 Prime") {
+          console.log("Valid device : " + brand.data[i].name);
+        // const sql = `INSERT INTO devices (title, brand_name, img, description)
+        // VALUES (?, ?, ?, ?)`;
+        // await new Promise((resolve, reject) => {
+        //   connection.query(sql, [brand_name + " " + brand.data[i].name, data[iBrand].name, brand.data[i].img, brand.data[i].description], (error, results) => {
+        //     if (error) {
+        //       console.log(error);
+        //       reject(error);
+        //       return;
+        //     }
+        //     console.log("Success Device");
+        //     resolve();
+        //   });
+        // });
 
         // Fetch device details
         let deviceDetails = await fetchDeviceFromAPI(brand.data[i].url);
         for (let category of deviceDetails.spec_detail) {
-          // Insert category data
-          const sqlCategory = `INSERT INTO categories (device_title, name)
-          VALUES (?, ?)
-          ON DUPLICATE KEY UPDATE name = VALUES(name)`;
-          await new Promise((resolve, reject) => {
-            connection.query(sqlCategory, [deviceDetails.title, category.category], (error, results) => {
-              if (error) {
-                console.log(error);
-                reject(error);
-                return;
-              }
-              console.log("Success Category");
-              resolve();
-            });
-          });
 
           // Insert specs data
           for (let spec of category.specs) {
@@ -134,6 +142,7 @@ const insertBrandsIntoDatabase = async (data, connection, callback) => {
             });
           }
         }
+      }
       }
 
       const nextPageUrl = getNextPageUrl(brand.pages);

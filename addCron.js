@@ -238,6 +238,7 @@ const addCron = async (connection) => {
         })
         .catch((error) => {
             console.error('There was an error: ', error);
+            process.exit(1);
         });
 };
 

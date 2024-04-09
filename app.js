@@ -7,6 +7,8 @@ const { insertBrandsIntoDatabase, fetchBrandsFromAPI, fetchLastPageDevices } = r
 
 const addCron = require('./addCron');
 
+const fetchAndSaveDeviceSpecs = require('./addDeviceSpecs');
+
 // Set up MySQL connection
 const connection = mysql.createConnection({
   host: process.env.DB_HOST,
@@ -25,7 +27,9 @@ connection.connect((err) => {
 });
 
 
-addCron(connection);
+// addCron(connection);
+
+fetchAndSaveDeviceSpecs(connection, './devices.txt');
 
 // Code for initial fetch and save
 

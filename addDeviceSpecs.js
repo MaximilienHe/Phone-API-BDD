@@ -8,46 +8,53 @@ const fetchAndSaveDeviceSpecs = async (connection, filePath) => {
     const deviceNames = fs.readFileSync(filePath, "utf-8").split("\n");
 
     for (const deviceName of deviceNames) {
-      // Remplacer les espaces par %20 pour l'URL
       const formattedName = deviceName.trim().replace(/\s/g, "%20");
-      const apiUrl = process.env.API_URL + `search/${formattedName}`;
+      const searchApiUrl = process.env.API_URL + `search/${formattedName}`;
 
-      // Récupération des données de l'API
-      const response = await axios.get(apiUrl);
-      const deviceData = response.data;
+      // Récupération des informations générales de l'API
+      const searchResponse = await axios.get(searchApiUrl);
+      const searchResults = searchResponse.data;
 
-      if (deviceData) {
-        // Ici, insérez les données dans la base de données
+      // Trouver le dispositif correspondant exactement par le nom
+      const exactMatchDevice = searchResults.find(device => device.name === deviceName.trim());
+
+      if (exactMatchDevice) {
+        const deviceDetailsApiUrl = process.env.API_URL + `device/${exactMatchDevice.url}`;
+
+        // Récupération des détails de l'appareil de l'API
+        const detailsResponse = await axios.get(deviceDetailsApiUrl);
+        const deviceDetails = detailsResponse.data;
+
         console.log(`Adding or updating device specs for: ${deviceName}`);
-        const deviceTitle = deviceName; // Utilisez le titre approprié pour votre cas
-
-        // Insérer ou mettre à jour les spécifications du dispositif
-        for (const category of deviceData.spec_detail) {
-          for (const spec of category.specs) {
-            const sqlSpec = `INSERT INTO specs (device_title, category_name, name, value)
-                             VALUES (?, ?, ?, ?)
-                             ON DUPLICATE KEY UPDATE value = VALUES(value)`;
-            await new Promise((resolve, reject) => {
-              connection.query(
-                sqlSpec,
-                [deviceTitle, category.category, spec.name, spec.value],
-                (error) => {
-                  if (error) {
-                    reject(error);
-                    return;
+        
+        if (deviceDetails && deviceDetails.spec_detail) {
+          // Insérer ou mettre à jour les spécifications du dispositif
+          for (const category of deviceDetails.spec_detail) {
+            for (const spec of category.specs) {
+              const sqlSpec = `INSERT INTO specs (device_title, category_name, name, value)
+                               VALUES (?, ?, ?, ?)
+                               ON DUPLICATE KEY UPDATE value = VALUES(value)`;
+              await new Promise((resolve, reject) => {
+                connection.query(
+                  sqlSpec,
+                  [deviceName, category.category, spec.name, spec.value],
+                  (error) => {
+                    if (error) {
+                      reject(error);
+                      return;
+                    }
+                    resolve();
                   }
-                  resolve();
-                }
-              );
-            });
+                );
+              });
+            }
           }
+          console.log(`Successfully added/updated device specs for: ${deviceName}`);
+        } else {
+          console.error(`No details found for device: ${deviceName}`);
         }
-
-        console.log(
-          `Successfully added/updated device specs for: ${deviceName}`
-        );
       } else {
-        console.error(`No data found for device: ${deviceName}`);
+        console.error(`No exact match found for device: ${deviceName}`);
       }
     }
   } catch (error) {
@@ -58,4 +65,5 @@ const fetchAndSaveDeviceSpecs = async (connection, filePath) => {
 module.exports = fetchAndSaveDeviceSpecs;
 
 // Exemple d'utilisation
-// fetchAndSaveDeviceSpecs('/path/to/your/devices.txt');
+// N'oubliez pas d'initialiser et de passer la connexion MySQL et le chemin du fichier
+// fetchAndSaveDeviceSpecs(connection, '/path/to/your/devices.txt');

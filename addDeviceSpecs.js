@@ -10,7 +10,7 @@ const fetchAndSaveDeviceSpecs = async (connection, filePath) => {
     for (const deviceName of deviceNames) {
       // Remplacer les espaces par %20 pour l'URL
       const formattedName = deviceName.trim().replace(/\s/g, "%20");
-      const apiUrl = process.env.API_URL + `/search/${formattedName}`;
+      const apiUrl = process.env.API_URL + `search/${formattedName}`;
 
       // Récupération des données de l'API
       const response = await axios.get(apiUrl);

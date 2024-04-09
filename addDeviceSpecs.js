@@ -4,16 +4,22 @@ const mysql = require("mysql");
 
 const fetchAndSaveDeviceSpecs = async (connection, filePath) => {
   try {
-    // Lecture du fichier contenant les noms des smartphones
-    const deviceNames = fs.readFileSync(filePath, "utf-8").split("\n");
+    // Lecture du fichier contenant les noms des smartphones et filtrage des lignes vides
+    const deviceNames = fs.readFileSync(filePath, "utf-8").split("\n").filter(name => name.trim());
 
     for (const deviceName of deviceNames) {
       const formattedName = deviceName.trim().replace(/\s/g, "%20");
       const searchApiUrl = process.env.API_URL + `search/${formattedName}`;
 
       // Récupération des informations générales de l'API
-      const searchResponse = await axios.get(searchApiUrl);
-      const searchResults = searchResponse.data;
+      let searchResults = [];
+      try {
+        const searchResponse = await axios.get(searchApiUrl);
+        searchResults = searchResponse.data;
+      } catch (error) {
+        console.error(`Error fetching device information from API for: ${deviceName}`, error);
+        continue; // Passe au prochain nom de dispositif en cas d'erreur
+      }
 
       // Trouver le dispositif correspondant exactement par le nom
       const exactMatchDevice = searchResults.find(device => device.name === deviceName.trim());
@@ -50,6 +56,19 @@ const fetchAndSaveDeviceSpecs = async (connection, filePath) => {
             }
           }
           console.log(`Successfully added/updated device specs for: ${deviceName}`);
+
+          // Appel des procédures stockées après l'insertion/mise à jour
+          const callProcedureSql = `CALL call_all_procedures_device_title(?)`;
+          await new Promise((resolve, reject) => {
+            connection.query(callProcedureSql, [deviceName], (error, results) => {
+              if (error) {
+                reject(error);
+                return;
+              }
+              resolve();
+            });
+          });
+          console.log(`Procedures called successfully for: ${deviceName}`);
         } else {
           console.error(`No details found for device: ${deviceName}`);
         }

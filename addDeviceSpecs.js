@@ -55,5 +55,7 @@ const fetchAndSaveDeviceSpecs = async (connection, filePath) => {
   }
 };
 
+modules.exports = fetchAndSaveDeviceSpecs;
+
 // Exemple d'utilisation
 // fetchAndSaveDeviceSpecs('/path/to/your/devices.txt');
